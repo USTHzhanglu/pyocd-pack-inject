@@ -1,6 +1,6 @@
 """Per-pack device list dialog (shown on double-click in the pack list).
 
-Layout mirrors dap_download's target_picker.py: fixed header row,
+Layout mirrors the main window:
 per-column filter boxes, tksheet body with an always-visible external
 scrollbar, and OK/Cancel buttons. Columns show a friendly device name,
 the normalised target name pyOCD/CLI actually accepts, and the flash size.
@@ -93,7 +93,7 @@ class DevicesDialog(tk.Toplevel):
         self.grab_set()
         self.focus_set()
 
-    # ---------------- UI (mirrors dap target_picker.py) ----------------
+    # ---------------- UI (mirrors the main window) ----------------
 
     def _build_ui(self) -> None:
         cols = self.COLS

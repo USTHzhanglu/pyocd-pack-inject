@@ -1,9 +1,7 @@
 """Graphical pack manager for the pyOCD global cache (inject).
 
-Layout parameters mirror dap_download's pack_manager_dialog.py /
-target_picker.py exactly (fixed pixel sizes; tk scales fonts automatically
-once the process is DPI aware), plus a per-column filter row and
-drag & drop of .pack files.
+Fixed pixel sizes (tk scales fonts automatically once the process is
+DPI aware), per-column filter row, drag & drop of .pack files.
 
 Run with:  ppi gui   (or: python -m pyocd_pack_inject gui)
 GUI extras are an optional dependency: pip install "pyocd-pack-inject[gui]"
@@ -26,7 +24,7 @@ from . import (HELP_URL, __appname__, __author__, __copyright__,
 from .devices_dialog import DevicesDialog
 from .manager import PackManager, PackManagerError
 
-# --- HiDPI: same as dap_download's dap_downloader.py ---
+# --- HiDPI helpers ---
 DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 = ctypes.c_void_p(-4)
 
 
@@ -34,7 +32,7 @@ def enable_dpi_awareness() -> None:
     """Per-monitor DPI aware before Tk() (falls back gracefully).
 
     Once DPI aware, Tk sizes fonts automatically; pixel sizes below stay
-    identical to the dap_download dialogs.
+    identical across dialogs.
     """
     try:
         ctypes.windll.user32.SetProcessDpiAwarenessContext(
@@ -78,10 +76,9 @@ def _require_gui_extras() -> None:
 
 class PackInjectApp(tk.Tk):
     """List injected packs (per-column filters, drag & drop install,
-    remove selected). Sizes/colors follow dap_download's dialogs."""
+    remove selected)."""
 
-    # (key, title, width) - widths/proportions copied from
-    # pack_manager_dialog.py's first three columns.
+    # (key, title, width) - 360:360:160 column width proportion.
     COLS = [('vendor', 'Vendor', 360), ('pack', 'Pack', 360),
             ('version', 'Version', 160)]
 
@@ -119,7 +116,7 @@ class PackInjectApp(tk.Tk):
         # Drag & drop .pack files anywhere on the window.
         windnd.hook_dropfiles(self, func=self._on_drop_files)
 
-    # ---------------- menu (mirrors dap_download) ----------------
+    # ---------------- menu ----------------
 
     def _build_menu(self) -> None:
         menubar = tk.Menu(self)
@@ -128,7 +125,7 @@ class PackInjectApp(tk.Tk):
         self.config(menu=menubar)
 
     def _show_help(self) -> None:
-        # Open the project README (mirrors dap_download's Help menu).
+        # Open the project README (opens the project README).
         webbrowser.open(HELP_URL, new=0)
 
     def _show_about(self) -> None:
@@ -150,7 +147,7 @@ class PackInjectApp(tk.Tk):
         except Exception:
             return '?'
 
-    # ---------------- UI (mirrors dap dialogs) ----------------
+    # ---------------- UI ----------------
 
     def _build_ui(self) -> None:
         cols = self.COLS
@@ -189,7 +186,7 @@ class PackInjectApp(tk.Tk):
             e.grid(row=0, column=i, sticky='ew')
             self.entries[key] = e
 
-        # Fixed-height sheet; external scrollbar (mirrors target_picker.py).
+        # Fixed-height sheet; external scrollbar (always visible).
         sheet = Sheet(mid, height=720, show_row_index=False,
                       show_header=False,
                       auto_resize_columns=False, auto_resize_rows=False,
@@ -215,7 +212,7 @@ class PackInjectApp(tk.Tk):
         filter_frame.grid(row=2, column=0, sticky='ew')
         sheet.grid(row=4, column=0, sticky='nsew')
 
-        # Always-visible external vertical scrollbar (dap target_picker style).
+        # Always-visible external vertical scrollbar (fixed, always visible).
         ext_sb = tk.Scrollbar(mid, orient='vertical',
                               command=sheet.MT._yscrollbar, width="12p")
         sheet.MT.configure(yscrollcommand=ext_sb.set)
@@ -258,7 +255,7 @@ class PackInjectApp(tk.Tk):
         self._hl_row = None
 
     def _fit(self, text, width):
-        """Truncate long cell text with an ellipsis (mirrors dap pickers)."""
+        """Truncate long cell text with an ellipsis ."""
         if not hasattr(self, '_cell_font'):
             self._cell_font = tkfont.Font(family='Segoe UI', size=9)
         f = self._cell_font
