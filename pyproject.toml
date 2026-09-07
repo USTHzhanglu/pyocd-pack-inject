@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pyocd-pack-inject"
+version = "0.1.0"
+description = "Inject local CMSIS-Pack files into the pyOCD global pack cache so pyOCD discovers them without --pack (CLI: ppi)"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "Apache-2.0" }
+dependencies = [
+    "cmsis-pack-manager>=0.5.2,<1.0",
+]
+
+[project.optional-dependencies]
+gui = [
+    "tksheet>=7",
+    "windnd",
+]
+
+[project.scripts]
+ppi = "pyocd_pack_inject.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
