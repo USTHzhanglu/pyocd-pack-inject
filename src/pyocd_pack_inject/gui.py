@@ -133,19 +133,9 @@ class PackInjectApp(tk.Tk):
             __appname__ + '\r\n\r\n' +
             'Version:%s\r\n' % __version__ +
             'Author:%s\r\n' % __author__ +
-            'Copyright@%s\r\n\r\n' % __copyright__ +
-            'pyOCD %s\r\n' % self._pyocd_version() +
-            'Cache: %s' % self._mgr.data_path
+            'Copyright@%s\r\n\r\n' % __copyright__
         )
         messagebox.showinfo(title='About', message=show_about, parent=self)
-
-    @staticmethod
-    def _pyocd_version() -> str:
-        try:
-            import pyocd
-            return getattr(pyocd, '__version__', '?') or '?'
-        except Exception:
-            return '?'
 
     # ---------------- UI ----------------
 

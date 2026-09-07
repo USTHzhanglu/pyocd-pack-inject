@@ -52,27 +52,26 @@ version_info = VSVersionInfo(
     ],
 )
 
-# pyOCD ships probes/rtos as entry-point plugins; harmless to include and
-# keeps any pyocd import path complete.
-datas_probe, hiddenimports_probe = collect_entry_point('pyocd.probe')
-datas_rtos, hiddenimports_rtos = collect_entry_point('pyocd.rtos')
+# pyOCD is intentionally NOT bundled: the tool only maintains the
+# cmsis-pack-manager cache files, which any pyOCD install reads.
 
 block_cipher = None
 
 a = Analysis(
     [os.path.join(SP, 'packaging', 'gui_main.py')],
     pathex=[os.path.join(SP, 'src')],
-    binaries=(collect_dynamic_libs('libusb_package')
-              + collect_dynamic_libs('cmsis_pack_manager')),
-    datas=(collect_data_files('pyocd', excludes=['debug/svd'])
-           + collect_data_files('cmsis_pack_manager')
-           + datas_probe + datas_rtos),
-    hiddenimports=(['cmsis_pack_manager', 'tksheet', 'windnd']
-                   + hiddenimports_probe + hiddenimports_rtos),
+    binaries=collect_dynamic_libs('cmsis_pack_manager'),
+    datas=collect_data_files('cmsis_pack_manager'),
+    hiddenimports=['cmsis_pack_manager', 'tksheet', 'windnd'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[],
+    # No networking/crypto in this app: drop the ssl stack (~4 MB of dlls)
+    # plus other unused stdlib pulled in by generic hooks.
+    excludes=['ssl', '_ssl', 'hashlib', '_hashlib', 'socket', 'select',
+              'urllib', 'http', 'email', 'unittest', 'pydoc', 'doctest',
+              'tkinter.test', 'tkinter.ttk.test'],
+    optimize=2,
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
     cipher=block_cipher,
@@ -90,8 +89,8 @@ exe = EXE(
     name=__appname__,
     debug=False,
     bootloader_ignore_signals=False,
-    strip=False,
-    upx=False,
+    strip=True,
+    upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
     console=False,

@@ -9,9 +9,12 @@ OK / double-click copies the selected target name to the clipboard.
 
 from __future__ import annotations
 
+import string
 import tkinter as tk
 import tkinter.messagebox as messagebox
 import tkinter.ttk as ttk
+import zipfile
+from xml.etree import ElementTree as ET
 
 try:
     from tksheet import Sheet
@@ -20,10 +23,27 @@ except ImportError:  # pragma: no cover
 
 from .manager import PackManagerError
 
+# Same rule pyOCD uses to turn a target type into a registry key:
+# non-alphanumeric characters collapse to a single '_' and it is lowercased.
+_TARGET_NAME_CHARS = string.ascii_letters + string.digits + '_'
+
 
 def _normalise(name: str) -> str:
-    from pyocd.target import normalise_target_type_name
-    return normalise_target_type_name(name)
+    result = ""
+    in_replace = False
+    for c in name:
+        if c in _TARGET_NAME_CHARS:
+            result += c.lower()
+            in_replace = False
+        elif not in_replace:
+            result += '_'
+            in_replace = True
+    return result
+
+
+def _tag(el) -> str:
+    """Local tag name without the XML namespace."""
+    return el.tag.split('}', 1)[-1]
 
 
 def _fmt_flash(size: int) -> str:
@@ -35,23 +55,41 @@ def _fmt_flash(size: int) -> str:
 
 
 def list_pack_devices(pack_path: str):
-    """Parse a .pack and yield (device, target, flash) rows.
+    """Parse a .pack's PDSC and return (device, target, flash) rows.
 
     device: friendly part number without the leading '-' the CMSIS DFP uses.
     target: normalised target type name usable with `pyocd -t` / GUI.
     flash : size of the largest flash region, formatted.
-    """
-    from pyocd.target.pack.cmsis_pack import CmsisPack
 
-    pack = CmsisPack(pack_path)
+    Parsing is intentionally minimal (no <condition>/<feature> expansion);
+    it matches common DFPs. Packs that use conditional device variants may
+    list fewer/other entries than pyOCD would - this list is an overview
+    plus a copyable target name, not the source of truth.
+    """
+    with zipfile.ZipFile(pack_path) as z:
+        pdsc_name = next((n for n in z.namelist()
+                          if n.lower().endswith('.pdsc')), None)
+        if pdsc_name is None:
+            raise PackManagerError("pack contains no .pdsc: %s" % pack_path)
+        root = ET.fromstring(z.read(pdsc_name))
+
     rows = []
-    for dev in pack.devices:
-        part = getattr(dev, 'part_number', None) or ''
-        flashes = [r for r in getattr(dev, 'memory_map', [])
-                   if getattr(r, 'is_flash', False)]
-        flash = max((r.length for r in flashes), default=0)
-        device = part.lstrip('-')
-        rows.append((device or part, _normalise(part), _fmt_flash(flash)))
+    for dev in root.iter():
+        if _tag(dev) != 'device' or not dev.get('Dname'):
+            continue
+        part = dev.get('Dname')
+        # Largest read-only (no 'w' access) region = program flash.
+        flash = 0
+        for mem in dev.iter():
+            if _tag(mem) != 'memory':
+                continue
+            if 'w' in (mem.get('access') or '').lower():
+                continue
+            try:
+                flash = max(flash, int(mem.get('size') or 0, 0))
+            except ValueError:
+                continue
+        rows.append((part.lstrip('-'), _normalise(part), _fmt_flash(flash)))
     rows.sort(key=lambda r: r[0].lower())
     return rows
 

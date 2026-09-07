@@ -81,11 +81,13 @@ PyInstaller 打包为 windowed GUI 单文件 exe（无外部配置/资源）：
 
 ```bash
 python -m PyInstaller packaging/pyocd_pack_inject.spec --noconfirm
-# 产物: dist/pyocd-pack-inject.exe (约 20MB)
+# 产物: dist/pyocd-pack-inject.exe (约 12MB 单文件)
 ```
 
 spec 从 `version.py` 读取版本并写入 exe 文件属性；已处理
-cmsis-pack-manager 的 rust 扩展与 pyOCD 插件收集。
+cmsis-pack-manager 的 rust 扩展收集，并排除无用的 ssl/网络等标准库
+模块。**不打包 pyOCD**——工具只维护 cmsis-pack-manager 缓存文件，
+pyOCD 由使用方自行安装。
 
 ## 项目结构
 
